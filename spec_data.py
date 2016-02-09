@@ -14,18 +14,20 @@ class CleanSpectra(object):
         if not isinstance(selection, slice):
             selection = slice(selection)
 
-        self.data = h5py.File(h5file, 'r')
-        wavelengths = 10 ** self.data['log_wavelengths'][:]
+        datafile = h5py.File(h5file, 'r')
+        wavelengths = 10 ** datafile['log_wavelengths'][:]
         mask = ((wavelengths >= self.min_wavelength) &
                 (wavelengths <= self.max_wavelength))
         self.wavelengths = wavelengths[mask]
-        self.spectra = self.data['spectra'][selection, mask]
-        self.weights = self.data['ivars'][selection, mask]
+        self.spectra = datafile['spectra'][selection, mask]
+        self.weights = datafile['ivars'][selection, mask]
+        datafile.close()
 
         # remove rows with excessive missing data
         good_rows = (self.weights == 0).mean(1) < self.max_masked_fraction
         self.spectra = self.spectra[good_rows]
-        self.weights = self.weights[good_rows] ** 0.5
+        self.weights = self.weights[good_rows]
+        self.weights **= 0.5
         return self
 
     def fit_wpca(self, n_components=200, regularization=False):
